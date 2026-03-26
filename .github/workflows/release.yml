@@ -44,6 +44,31 @@ jobs:
 
           tar -czf "dist/temperature-proxy-api-${version}.tar.gz" -C dist "temperature-proxy-api-${version}"
 
+          sha256sum "${jar_path}" "dist/temperature-proxy-api-${version}.tar.gz" \
+            > "dist/temperature-proxy-api-${version}.sha256"
+
+      - name: Sign release assets
+        if: ${{ secrets.RELEASE_SIGNING_CERT_B64 != '' && secrets.RELEASE_SIGNING_KEY_B64 != '' }}
+        env:
+          RELEASE_SIGNING_CERT_B64: ${{ secrets.RELEASE_SIGNING_CERT_B64 }}
+          RELEASE_SIGNING_KEY_B64: ${{ secrets.RELEASE_SIGNING_KEY_B64 }}
+        run: |
+          version="${GITHUB_REF_NAME}"
+          jar_path="$(find target -maxdepth 1 -type f -name '*.jar' ! -name 'original-*.jar' | head -n 1)"
+          cert_path="dist/release-signing-cert.pem"
+          key_path="dist/release-signing-key.pem"
+          signature_path="dist/temperature-proxy-api-${version}.sha256.sig"
+
+          printf '%s' "${RELEASE_SIGNING_CERT_B64}" | base64 --decode > "${cert_path}"
+          printf '%s' "${RELEASE_SIGNING_KEY_B64}" | base64 --decode > "${key_path}"
+
+          openssl dgst -sha256 -sign "${key_path}" \
+            -out "${signature_path}" \
+            "dist/temperature-proxy-api-${version}.sha256"
+
+          chmod 600 "${key_path}"
+          rm -f "${key_path}"
+
       - name: Upload release bundle artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -53,14 +78,29 @@ jobs:
           path: |
             target/*.jar
             dist/temperature-proxy-api-${{ github.ref_name }}.tar.gz
+            dist/temperature-proxy-api-${{ github.ref_name }}.sha256
+            dist/temperature-proxy-api-${{ github.ref_name }}.sha256.sig
+            dist/release-signing-cert.pem
 
       - name: Publish GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           jar_path="$(find target -maxdepth 1 -type f -name '*.jar' ! -name 'original-*.jar' | head -n 1)"
+          assets=(
+            "${jar_path}"
+            "dist/temperature-proxy-api-${GITHUB_REF_NAME}.tar.gz"
+            "dist/temperature-proxy-api-${GITHUB_REF_NAME}.sha256"
+          )
+
+          if [ -f "dist/temperature-proxy-api-${GITHUB_REF_NAME}.sha256.sig" ]; then
+            assets+=(
+              "dist/temperature-proxy-api-${GITHUB_REF_NAME}.sha256.sig"
+              "dist/release-signing-cert.pem"
+            )
+          fi
+
           gh release create "${GITHUB_REF_NAME}" \
-            "${jar_path}" \
-            "dist/temperature-proxy-api-${GITHUB_REF_NAME}.tar.gz" \
+            "${assets[@]}" \
             --generate-notes \
             --verify-tag
