@@ -37,6 +37,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-and-coverage-reports
+          if-no-files-found: warn
+          retention-days: 30
           path: |
             target/surefire-reports/
             target/failsafe-reports/
@@ -65,6 +67,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: static-analysis-reports
+          if-no-files-found: warn
+          retention-days: 30
           path: |
             target/checkstyle-result.xml
             target/spotbugsXml.xml
@@ -92,6 +96,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
+          if-no-files-found: warn
+          retention-days: 30
           path: |
             target/dependency-check-report.html
             target/dependency-check-report.json

@@ -44,6 +44,16 @@ jobs:
 
           tar -czf "dist/temperature-proxy-api-${version}.tar.gz" -C dist "temperature-proxy-api-${version}"
 
+      - name: Upload release bundle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle-${{ github.ref_name }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            target/*.jar
+            dist/temperature-proxy-api-${{ github.ref_name }}.tar.gz
+
       - name: Publish GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
