@@ -2,9 +2,8 @@ package com.temperatureproxy.interfaces.rest;
 
 import com.temperatureproxy.application.dto.TemperatureRequest;
 import com.temperatureproxy.application.service.GetCurrentTemperatureUseCase;
-import com.temperatureproxy.domain.model.Location;
 import com.temperatureproxy.domain.model.TemperatureResponse;
-import com.temperatureproxy.domain.service.ValidationHandler;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -23,17 +22,19 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * REST controller for temperature endpoints.
- * Implements validation chain and proper HTTP semantics.
+ * Relies on bean validation and proper HTTP semantics.
  */
 @Slf4j
 @RestController
 @RequestMapping("/v1")
 @Validated
 @RequiredArgsConstructor
+@SuppressFBWarnings(
+    value = "EI_EXPOSE_REP2",
+    justification = "Spring injects MeterRegistry as a shared infrastructure collaborator.")
 public class TemperatureController {
     
     private final GetCurrentTemperatureUseCase getCurrentTemperatureUseCase;
-    private final ValidationHandler validationChain;
     private final MeterRegistry meterRegistry;
     
     @GetMapping("/temperature")
@@ -44,14 +45,6 @@ public class TemperatureController {
         meterRegistry.counter("api.temperature.requests").increment();
         
         log.info("Received temperature request: lat={}, lon={}", lat, lon);
-        
-        // Build location and validate through chain
-        Location location = Location.builder()
-            .latitude(lat)
-            .longitude(lon)
-            .build();
-        
-        validationChain.validate(location);
         
         TemperatureRequest request = TemperatureRequest.of(lat, lon);
         TemperatureResponse response = getCurrentTemperatureUseCase.execute(request);

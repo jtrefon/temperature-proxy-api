@@ -40,5 +40,5 @@ public interface WeatherRepository {
     /**
      * Cache statistics record.
      */
-    record CacheStatistics(long hitCount, long missCount, double hitRate) {}
+    record CacheStatistics(long hitCount, long missCount, double hitRate) { }
 }

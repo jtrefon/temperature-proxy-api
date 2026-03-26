@@ -5,6 +5,7 @@ import com.temperatureproxy.domain.model.Location;
 import com.temperatureproxy.domain.model.TemperatureResponse;
 import com.temperatureproxy.domain.model.WeatherData;
 import com.temperatureproxy.domain.repository.WeatherRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -21,6 +22,9 @@ import java.util.NoSuchElementException;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressFBWarnings(
+    value = "EI_EXPOSE_REP2",
+    justification = "Spring injects MeterRegistry as a shared infrastructure collaborator.")
 public class GetCurrentTemperatureUseCase {
     
     private final WeatherRepository weatherRepository;
@@ -32,10 +36,7 @@ public class GetCurrentTemperatureUseCase {
      * @return temperature response
      */
     public TemperatureResponse execute(TemperatureRequest request) {
-        Location location = Location.builder()
-            .latitude(request.getLatitude())
-            .longitude(request.getLongitude())
-            .build();
+        Location location = request.toLocation();
         
         Timer.Sample sample = Timer.start(meterRegistry);
         

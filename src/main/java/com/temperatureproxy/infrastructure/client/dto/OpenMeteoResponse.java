@@ -1,6 +1,7 @@
 package com.temperatureproxy.infrastructure.client.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.Data;
 
 /**
@@ -8,6 +9,9 @@ import lombok.Data;
  * Maps JSON structure from Open-Meteo Forecast API.
  */
 @Data
+@SuppressFBWarnings(
+    value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+    justification = "Jackson populates this mutable transport DTO during deserialization.")
 public class OpenMeteoResponse {
     
     private double latitude;

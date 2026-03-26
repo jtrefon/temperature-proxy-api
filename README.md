@@ -1,44 +1,30 @@
 # Temperature Proxy API
 
-A state-of-the-art REST API that fetches current temperature data from Open-Meteo and returns a normalized response. Built with enterprise-grade architecture patterns and production-ready features.
+Spring Boot 3 service that fetches current weather data from Open-Meteo, normalizes the response, and serves it through a small HTTP API.
 
-## Architecture Highlights
+## What Is Actually Implemented
 
-### Design Patterns Implemented
-- **Proxy Pattern**: Caching layer with `CachingWeatherProxy`
-- **Strategy Pattern**: Pluggable cache algorithms via `CacheStrategy`
-- **Factory Pattern**: Client creation with `WeatherClientFactory`
-- **Circuit Breaker**: Resilience with Resilience4j
-- **Observer Pattern**: Event-driven metrics collection
-- **Command Pattern**: Request encapsulation
-- **Builder Pattern**: Immutable object construction
-- **Decorator Pattern**: Cross-cutting concerns (logging, validation)
-- **Chain of Responsibility**: Validation pipeline
-- **Repository Pattern**: Data access abstraction
-- **Adapter Pattern**: External API integration
-- **Composite Pattern**: Health check aggregation
+- Hexagonal-style package split: `interfaces`, `application`, `domain`, `infrastructure`
+- Immutable domain value objects for `Location`, `WeatherData`, and `WeatherMetrics`
+- `OpenMeteoAdapter` as the external API adapter
+- In-memory caching through a `WeatherRepository` backed by Caffeine
+- Resilience4j retry, circuit breaker, and time limiter around the upstream call
+- Actuator health and Prometheus metrics endpoints
+- Unit and integration tests with JUnit 5, AssertJ, and WireMock
 
-## Technology Stack
+This repository deliberately avoids claiming patterns that are not present in code. The design favors small, explicit abstractions over pattern inflation.
 
-- **Java 17** with Spring Boot 3.x
-- **Spring WebFlux** for reactive programming
-- **Caffeine Cache** for in-memory caching (no Redis)
-- **Resilience4j** for circuit breaker and retry patterns
-- **Micrometer + Prometheus** for metrics
-- **JUnit 5 + AssertJ** for testing
-- **WireMock** for integration testing
-- **Kubernetes** for deployment
+## API
 
-## API Endpoints
+### `GET /v1/temperature`
 
-### GET /v1/temperature
-Fetches current temperature for specified coordinates.
+Query parameters:
 
-**Query Parameters:**
-- `lat` (required, float): Latitude (-90 to 90)
-- `lon` (required, float): Longitude (-180 to 180)
+- `lat`: latitude in the inclusive range `[-90, 90]`
+- `lon`: longitude in the inclusive range `[-180, 180]`
 
-**Example Response:**
+Example response:
+
 ```json
 {
   "location": {
@@ -54,118 +40,77 @@ Fetches current temperature for specified coordinates.
 }
 ```
 
-### GET /actuator/health
-Health check endpoint with liveness and readiness probes.
+Operational endpoints:
 
-### GET /actuator/metrics
-Prometheus-compatible metrics.
+- `GET /actuator/health`
+- `GET /actuator/prometheus`
+- `GET /actuator/metrics`
 
-## Building and Running
+## Build And Quality Gates
 
-### Prerequisites
+Prerequisites:
+
 - Java 17+
-- Maven 3.8+
+- Maven 3.8.6+
 
-### Build
-```bash
-mvn clean package
-```
-
-### Run
-```bash
-mvn spring-boot:run
-```
-
-### Test
-```bash
-mvn test
-```
-
-With coverage:
-```bash
-mvn test jacoco:report
-```
-
-### Docker Build
-```bash
-docker build -t temperature-proxy:v1.0.0 .
-```
-
-## Configuration
-
-### Application Properties
-```yaml
-weather:
-  open-meteo:
-    base-url: https://api.open-meteo.com
-  cache:
-    ttl: 60s
-    max-size: 1000
-
-resilience4j:
-  circuitbreaker:
-    instances:
-      openMeteo:
-        slidingWindowSize: 10
-        failureRateThreshold: 50
-        waitDurationInOpenState: 30s
-```
-
-## Kubernetes Deployment
+Common commands:
 
 ```bash
-kubectl apply -f k8s/deployment.yaml
+mvn clean verify
 ```
 
-Features:
-- 3 replicas minimum with HPA (up to 10)
-- Resource limits and requests
-- Liveness, readiness, and startup probes
-- Prometheus metrics scraping
-
-## Testing Strategy
-
-### Unit Tests
-- Domain model validation
-- Chain of Responsibility pattern
-- Cache behavior
-
-### Integration Tests
-- WireMock for external API simulation
-- Full request/response flow
-- Error handling scenarios
-
-### Coverage
-- 90%+ line coverage enforced by JaCoCo
-- 90%+ branch coverage for domain layer
-
-## Project Structure
-
-```
-com.temperatureproxy/
-├── domain/
-│   ├── model/          # Immutable value objects
-│   ├── repository/       # Repository interfaces
-│   └── service/          # Validation chain
-├── application/
-│   ├── dto/             # Request/Response DTOs
-│   └── service/         # Use cases
-├── infrastructure/
-│   ├── client/          # Open-Meteo adapter
-│   ├── repository/      # Caffeine implementation
-│   └── config/          # Spring configurations
-└── interfaces/
-    ├── rest/            # REST controllers
-    └── exception/       # Global exception handler
+```bash
+mvn checkstyle:check spotbugs:check
 ```
 
-## Quality Metrics
+```bash
+mvn org.owasp:dependency-check-maven:check
+```
 
-- **Performance**: P99 < 800ms (cache miss), P99 < 20ms (cache hit)
-- **Availability**: 99.9% with circuit breaker
-- **Coverage**: > 90% line and branch coverage
-- **Memory**: < 400MB heap under load
+The repository-owned quality toolchain is intentionally based on open source Maven plugins:
 
-## Contact
+- JaCoCo for coverage
+- Checkstyle for style and consistency checks
+- SpotBugs for bytecode-level bug detection
+- OWASP Dependency-Check for dependency vulnerability scanning
+- Maven Enforcer for Java and Maven version guardrails
 
-For questions or issues, please contact the development team.
+This replaces cloud-only gates such as SonarCloud and Codecov so the repo can be built and checked independently.
+
+## CI/CD
+
+Two GitHub Actions workflows are provided:
+
+- `ci.yml`: runs verification, tests, coverage, Checkstyle, SpotBugs, and OWASP Dependency-Check on pushes and pull requests
+- `release.yml`: runs on version tags matching `v*`, builds the production jar, creates a release bundle, and publishes a GitHub Release with downloadable assets
+
+To publish a release:
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+The release workflow uploads:
+
+- the executable Spring Boot jar
+- a `.tar.gz` release bundle containing the jar, `README.md`, `Dockerfile`, and Kubernetes manifests
+
+## Project Layout
+
+```text
+src/main/java/com/temperatureproxy
+├── application
+├── domain
+├── infrastructure
+└── interfaces
+```
+
+## Notes For Publication
+
+Before making the repository public, confirm the non-code publication items that cannot be inferred safely here:
+
+- choose and add a license
+- confirm repository description/topics
+- confirm package/release naming policy
+- decide whether Docker image publishing is required in addition to GitHub Releases

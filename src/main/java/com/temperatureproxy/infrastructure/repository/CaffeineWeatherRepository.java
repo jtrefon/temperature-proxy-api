@@ -4,6 +4,7 @@ import com.temperatureproxy.domain.model.Location;
 import com.temperatureproxy.domain.model.WeatherData;
 import com.temperatureproxy.domain.repository.WeatherRepository;
 import com.temperatureproxy.domain.service.WeatherDataSource;
+import com.temperatureproxy.infrastructure.client.WeatherServiceException;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 
 /**
  * Repository implementation using Caffeine cache.
@@ -47,14 +49,13 @@ public class CaffeineWeatherRepository implements WeatherRepository {
         
         log.debug("Cache miss for location: {}", location);
         
-        // Fetch from source and cache
         try {
             WeatherData fetched = dataSource.fetch(location).join();
             cache.put(cacheKey, fetched);
             return Optional.of(fetched);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Failed to fetch weather data for location: {}", location, e);
-            return Optional.empty();
+            throw unwrapFetchFailure(e);
         }
     }
     
@@ -78,5 +79,15 @@ public class CaffeineWeatherRepository implements WeatherRepository {
         double hitRate = stats.hitRate();
         
         return new CacheStatistics(hitCount, missCount, hitRate);
+    }
+
+    private RuntimeException unwrapFetchFailure(RuntimeException exception) {
+        Throwable cause = exception instanceof CompletionException ? exception.getCause() : exception;
+
+        if (cause instanceof RuntimeException runtimeException) {
+            return runtimeException;
+        }
+
+        return new WeatherServiceException("Weather service temporarily unavailable", cause);
     }
 }

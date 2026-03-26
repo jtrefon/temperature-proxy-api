@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  release:
+    name: Build And Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Build release artifact
+        run: mvn -B clean verify
+
+      - name: Prepare release bundle
+        run: |
+          version="${GITHUB_REF_NAME}"
+          jar_path="$(find target -maxdepth 1 -type f -name '*.jar' ! -name 'original-*.jar' | head -n 1)"
+          test -n "${jar_path}"
+
+          bundle_dir="dist/temperature-proxy-api-${version}"
+          mkdir -p "${bundle_dir}"
+          cp "${jar_path}" "${bundle_dir}/"
+          cp README.md Dockerfile "${bundle_dir}/"
+          cp -R k8s "${bundle_dir}/"
+
+          tar -czf "dist/temperature-proxy-api-${version}.tar.gz" -C dist "temperature-proxy-api-${version}"
+
+      - name: Publish GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          jar_path="$(find target -maxdepth 1 -type f -name '*.jar' ! -name 'original-*.jar' | head -n 1)"
+          gh release create "${GITHUB_REF_NAME}" \
+            "${jar_path}" \
+            "dist/temperature-proxy-api-${GITHUB_REF_NAME}.tar.gz" \
+            --generate-notes \
+            --verify-tag

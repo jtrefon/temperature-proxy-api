@@ -23,6 +23,10 @@ public final class Location {
     
     private final double latitude;
     private final double longitude;
+
+    public static Location of(double latitude, double longitude) {
+        return new Location(latitude, longitude);
+    }
     
     @JsonCreator
     public Location(
@@ -57,8 +61,12 @@ public final class Location {
     
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Location)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Location)) {
+            return false;
+        }
         Location location = (Location) o;
         return Double.compare(location.latitude, latitude) == 0 &&
                Double.compare(location.longitude, longitude) == 0;

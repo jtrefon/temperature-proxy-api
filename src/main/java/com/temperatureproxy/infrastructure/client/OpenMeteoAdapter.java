@@ -5,6 +5,7 @@ import com.temperatureproxy.domain.model.WeatherData;
 import com.temperatureproxy.domain.model.WeatherMetrics;
 import com.temperatureproxy.domain.service.WeatherDataSource;
 import com.temperatureproxy.infrastructure.client.dto.OpenMeteoResponse;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -24,6 +25,9 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@SuppressFBWarnings(
+    value = "EI_EXPOSE_REP2",
+    justification = "Spring manages WebClient as a shared infrastructure dependency.")
 public class OpenMeteoAdapter implements WeatherDataSource {
     
     private static final String SOURCE_NAME = "open-meteo";
@@ -56,6 +60,9 @@ public class OpenMeteoAdapter implements WeatherDataSource {
     /**
      * Fallback method when circuit breaker is open or call fails.
      */
+    @SuppressFBWarnings(
+        value = "UPM_UNCALLED_PRIVATE_METHOD",
+        justification = "Resilience4j invokes fallback methods reflectively.")
     private CompletableFuture<WeatherData> fetchFallback(Location location, Exception ex) {
         log.warn("Fallback triggered for location: {} - Reason: {}", location, ex.getMessage());
         // Return cached data or throw specific exception

@@ -26,8 +26,8 @@ Fixes #(issue number)
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Code coverage remains above 90%
-- [ ] Static analysis passes (SonarQube, Checkstyle, SpotBugs)
-- [ ] Security scan passes (CodeQL, OWASP, Trivy)
+- [ ] Static analysis passes (Checkstyle, SpotBugs)
+- [ ] Security scan passes (OWASP Dependency-Check)
 
 ## Testing
 <!-- Describe the tests you ran and how to reproduce them -->

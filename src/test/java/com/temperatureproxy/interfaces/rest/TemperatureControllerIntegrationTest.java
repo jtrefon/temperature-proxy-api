@@ -14,8 +14,10 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.assertj.core.api.Assertions.assertThat;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 @SpringBootTest
 @AutoConfigureWebTestClient
@@ -112,6 +114,6 @@ class TemperatureControllerIntegrationTest {
         webTestClient.get()
             .uri("/v1/temperature?lat=52.52&lon=13.41")
             .exchange()
-            .expectStatus().is5xxServerError();
+            .expectStatus().isEqualTo(503);
     }
 }

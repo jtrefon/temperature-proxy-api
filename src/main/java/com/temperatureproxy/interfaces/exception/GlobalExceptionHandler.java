@@ -1,6 +1,7 @@
 package com.temperatureproxy.interfaces.exception;
 
 import com.temperatureproxy.infrastructure.client.WeatherServiceException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleValidationError(IllegalArgumentException e) {
         log.warn("Validation error: {}", e.getMessage());
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(createErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage()));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException e) {
+        log.warn("Constraint violation: {}", e.getMessage());
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
             .body(createErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage()));

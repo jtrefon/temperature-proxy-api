@@ -1,5 +1,7 @@
 package com.temperatureproxy.application.dto;
 
+import com.temperatureproxy.domain.model.Location;
+
 import lombok.Builder;
 import lombok.Value;
 
@@ -18,5 +20,9 @@ public class TemperatureRequest {
             .latitude(latitude)
             .longitude(longitude)
             .build();
+    }
+
+    public Location toLocation() {
+        return Location.of(latitude, longitude);
     }
 }
