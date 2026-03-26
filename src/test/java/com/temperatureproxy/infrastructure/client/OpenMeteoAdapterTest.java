@@ -9,6 +9,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.concurrent.CompletionException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -79,5 +81,29 @@ class OpenMeteoAdapterTest {
 
         assertThatThrownBy(() -> adapter.fetch(Location.of(52.52, 13.41)).join())
             .isInstanceOf(CompletionException.class);
+    }
+
+    @Test
+    @DisplayName("Should expose a fallback that raises service-unavailable semantics")
+    void shouldFailThroughFallbackMethod() throws Exception {
+        OpenMeteoAdapter adapter = new OpenMeteoAdapter(
+            WebClient.builder().baseUrl("http://localhost:9091").build());
+
+        Method fallback = OpenMeteoAdapter.class.getDeclaredMethod(
+            "fetchFallback", Location.class, Exception.class);
+        fallback.setAccessible(true);
+
+        assertThatThrownBy(() -> invokeFallback(fallback, adapter))
+            .isInstanceOf(WeatherServiceException.class)
+            .hasMessage("Weather service temporarily unavailable")
+            .hasCauseInstanceOf(IllegalStateException.class);
+    }
+
+    private static Object invokeFallback(Method fallback, OpenMeteoAdapter adapter) throws Throwable {
+        try {
+            return fallback.invoke(adapter, Location.of(52.52, 13.41), new IllegalStateException("boom"));
+        } catch (InvocationTargetException ex) {
+            throw ex.getCause();
+        }
     }
 }
