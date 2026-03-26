@@ -97,26 +97,24 @@ jobs:
           restore-keys: |
             dependency-check-${{ runner.os }}-${{ env.JAVA_VERSION }}-
 
-      - name: Run OWASP Dependency-Check With NVD API Key
-        if: ${{ secrets.NVD_API_KEY != '' }}
+      - name: Run OWASP Dependency-Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: mvn -B dependency-check:check
-
-      - name: Run OWASP Dependency-Check From Cached Data
-        if: ${{ secrets.NVD_API_KEY == '' && steps.dependency_check_cache.outputs.cache-hit == 'true' }}
-        run: mvn -B dependency-check:check -Dautoupdate=false
-
-      - name: Skip Cold Dependency Scan Without NVD API Key
-        if: ${{ secrets.NVD_API_KEY == '' && steps.dependency_check_cache.outputs.cache-hit != 'true' }}
+          DEPENDENCY_CHECK_CACHE_HIT: ${{ steps.dependency_check_cache.outputs.cache-hit }}
         run: |
-          {
-            echo "## Dependency Scan Skipped"
-            echo
-            echo "No \`NVD_API_KEY\` secret is configured and no cached Dependency-Check database was available."
-            echo "Skipping the cold-start NVD sync to avoid an infrastructure-driven false negative on a fresh GitHub runner."
-            echo "Configure \`NVD_API_KEY\` to enable deterministic dependency scanning from the first run."
-          } >> "${GITHUB_STEP_SUMMARY}"
+          if [ -n "${NVD_API_KEY}" ]; then
+            mvn -B dependency-check:check
+          elif [ "${DEPENDENCY_CHECK_CACHE_HIT}" = "true" ]; then
+            mvn -B dependency-check:check -Dautoupdate=false
+          else
+            {
+              echo "## Dependency Scan Skipped"
+              echo
+              echo "No \`NVD_API_KEY\` secret is configured and no cached Dependency-Check database was available."
+              echo "Skipping the cold-start NVD sync to avoid an infrastructure-driven false negative on a fresh GitHub runner."
+              echo "Configure \`NVD_API_KEY\` to enable deterministic dependency scanning from the first run."
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
 
       - name: Upload dependency scan reports
         if: always()
