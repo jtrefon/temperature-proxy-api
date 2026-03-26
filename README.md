@@ -64,8 +64,10 @@ mvn checkstyle:check spotbugs:check
 ```
 
 ```bash
-mvn org.owasp:dependency-check-maven:check
+mvn dependency-check:purge dependency-check:check
 ```
+
+For faster and more reliable NVD updates in CI, set the `NVD_API_KEY` GitHub Actions secret.
 
 The repository-owned quality toolchain is intentionally based on open source Maven plugins:
 

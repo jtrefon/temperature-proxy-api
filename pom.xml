@@ -28,7 +28,7 @@
         <maven.spotbugs.version>4.8.6.5</maven.spotbugs.version>
         <maven.failsafe.version>3.2.5</maven.failsafe.version>
         <maven.surefire.version>3.2.5</maven.surefire.version>
-        <dependency.check.version>10.0.4</dependency.check.version>
+        <dependency.check.version>12.2.0</dependency.check.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <caffeine.version>3.1.8</caffeine.version>
@@ -302,6 +302,7 @@
                 <version>${dependency.check.version}</version>
                 <configuration>
                     <failBuildOnCVSS>7</failBuildOnCVSS>
+                    <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
                     <formats>
                         <format>HTML</format>
                         <format>JSON</format>
