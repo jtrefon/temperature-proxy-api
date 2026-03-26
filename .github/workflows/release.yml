@@ -48,7 +48,6 @@ jobs:
             > "dist/temperature-proxy-api-${version}.sha256"
 
       - name: Sign release assets
-        if: ${{ secrets.RELEASE_SIGNING_CERT_B64 != '' && secrets.RELEASE_SIGNING_KEY_B64 != '' }}
         env:
           RELEASE_SIGNING_CERT_B64: ${{ secrets.RELEASE_SIGNING_CERT_B64 }}
           RELEASE_SIGNING_KEY_B64: ${{ secrets.RELEASE_SIGNING_KEY_B64 }}
@@ -58,6 +57,11 @@ jobs:
           cert_path="dist/release-signing-cert.pem"
           key_path="dist/release-signing-key.pem"
           signature_path="dist/temperature-proxy-api-${version}.sha256.sig"
+
+          if [ -z "${RELEASE_SIGNING_CERT_B64}" ] || [ -z "${RELEASE_SIGNING_KEY_B64}" ]; then
+            echo "No self-signed release keypair configured; publishing unsigned assets with checksums only."
+            exit 0
+          fi
 
           printf '%s' "${RELEASE_SIGNING_CERT_B64}" | base64 --decode > "${cert_path}"
           printf '%s' "${RELEASE_SIGNING_KEY_B64}" | base64 --decode > "${key_path}"
