@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: temperature-proxy-api
+
+server:
+  port: 8080
+
+# Weather service configuration
+weather:
+  open-meteo:
+    base-url: https://api.open-meteo.com
+  cache:
+    ttl: 60s
+    max-size: 1000
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      openMeteo:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+  retry:
+    instances:
+      openMeteo:
+        maxAttempts: 3
+        waitDuration: 500ms
+        retryExceptions:
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+  timelimiter:
+    instances:
+      openMeteo:
+        timeoutDuration: 1s
+        cancelRunningFuture: true
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+
+# Logging
+logging:
+  level:
+    com.temperatureproxy: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
